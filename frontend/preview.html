@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ReportSaathi | Medical Lab Report Explainer (Demo)</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            saathi: {
+              50: '#f0f9ff',
+              100: '#e0f2fe',
+              200: '#bae6fd',
+              300: '#7dd3fc',
+              400: '#38bdf8',
+              500: '#0ea5e9',
+              600: '#0284c7',
+              700: '#0369a1',
+              800: '#075985',
+              900: '#0c4a6e',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <!-- React & ReactDOM -->
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <!-- Babel Standalone for JSX -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    @keyframes scanline {
+      0% { top: 0%; opacity: 0.8; }
+      50% { opacity: 1; }
+      100% { top: 100%; opacity: 0.2; }
+    }
+    .animate-scanline {
+      animation: scanline 2s ease-in-out infinite alternate;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased font-sans">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    const SAMPLE_REPORTS = [
+      {
+        id: 'cbc-01',
+        title: 'Complete Blood Count (CBC) with Differential',
+        labName: 'Apollo Diagnostics & Pathology Lab',
+        testDate: '12 Nov 2026',
+        patient: { name: 'Rohan Sharma', age: 38, gender: 'Male', patientId: 'PT-89421' },
+        fileName: 'Rohan_CBC_Report_Nov2026.pdf',
+        fileSize: '1.4 MB',
+        summary: {
+          headline: 'Mildly low hemoglobin with overall stable blood cellular counts',
+          plainLanguageOverview: 'Your Complete Blood Count measures the three major cellular components of your blood: red cells (oxygen carriers), white cells (immune defenders), and platelets (clotting helpers). Overall, your immune cells and platelets are in healthy ranges. Your hemoglobin and red blood count are slightly below typical reference levels, which often indicates mild iron deficiency or nutritional needs. Discussing your dietary iron intake and energy levels with your physician is recommended.',
+          overallStatus: 'borderline',
+          flagCount: 2,
+          totalCount: 8,
+        },
+        metrics: [
+          {
+            id: 'hb',
+            name: 'Hemoglobin (Hb)',
+            category: 'Red Blood Cells',
+            value: 12.1,
+            unit: 'g/dL',
+            referenceRange: '13.5 - 17.5',
+            status: 'low',
+            plainMeaning: 'Hemoglobin is the protein in red blood cells that ferries oxygen from your lungs to your muscles, brain, and tissues.',
+            whyItMatters: 'A level slightly below 13.5 g/dL in adult males can cause mild tiredness, fatigue, or breathlessness after exercise. It is often related to dietary iron or B12 absorption.',
+            recommendationQuestion: 'Ask your doctor whether a ferritin (iron store) check or dietary adjustment is suitable.'
+          },
+          {
+            id: 'rbc',
+            name: 'Red Blood Cell (RBC) Count',
+            category: 'Red Blood Cells',
+            value: 4.12,
+            unit: 'million/mcL',
+            referenceRange: '4.50 - 5.90',
+            status: 'low',
+            plainMeaning: 'The total number of red blood cells circulating in your bloodstream.',
+            whyItMatters: 'Correlates directly with hemoglobin; when both are slightly low, doctors look into nutritional factors or recent minor blood loss.',
+            recommendationQuestion: 'Should we recheck this in 8-12 weeks after addressing nutritional intake?'
+          },
+          {
+            id: 'wbc',
+            name: 'Total Leukocyte (WBC) Count',
+            category: 'Immune System',
+            value: 7800,
+            unit: '/mcL',
+            referenceRange: '4,000 - 11,000',
+            status: 'normal',
+            plainMeaning: 'The body\'s primary defense cells that fight bacterial, viral, and environmental infections.',
+            whyItMatters: 'A normal count indicates your immune system is not actively fighting a major acute infection or showing distress.',
+            recommendationQuestion: 'No immediate action needed; count is solidly within the normal physiological window.'
+          },
+          {
+            id: 'plt',
+            name: 'Platelet Count',
+            category: 'Clotting & Bleeding',
+            value: 245000,
+            unit: '/mcL',
+            referenceRange: '150,000 - 450,000',
+            status: 'normal',
+            plainMeaning: 'Tiny cellular fragments that clump together to stop bleeding when you have a cut or injury.',
+            whyItMatters: 'Normal platelet levels ensure healthy clotting without forming abnormal clots inside blood vessels.',
+            recommendationQuestion: 'Clotting capacity is healthy and within expected parameters.'
+          },
+          {
+            id: 'hct',
+            name: 'Hematocrit (PCV)',
+            category: 'Red Blood Cells',
+            value: 37.8,
+            unit: '%',
+            referenceRange: '41.0 - 50.0',
+            status: 'low',
+            plainMeaning: 'The proportion of your total blood volume that consists of red blood cells.',
+            whyItMatters: 'Closely tracks with hemoglobin. Being slightly below 41% confirms a mild thinning of red cell volume.',
+            recommendationQuestion: 'Discuss whether staying well hydrated or taking iron supplements is indicated.'
+          },
+          {
+            id: 'mcv',
+            name: 'Mean Corpuscular Volume (MCV)',
+            category: 'Red Blood Cells',
+            value: 86.4,
+            unit: 'fL',
+            referenceRange: '80.0 - 100.0',
+            status: 'normal',
+            plainMeaning: 'The average physical size of your individual red blood cells.',
+            whyItMatters: 'Normal MCV suggests the cells are normal in size (normocytic), helping rule out certain types of vitamin deficiencies.',
+            recommendationQuestion: 'Normal size helps pinpoint the most likely causes of mild low hemoglobin.'
+          },
+          {
+            id: 'neutro',
+            name: 'Neutrophils',
+            category: 'Immune System',
+            value: 62,
+            unit: '%',
+            referenceRange: '40 - 70',
+            status: 'normal',
+            plainMeaning: 'The frontline soldier white blood cells that defend against acute bacterial infections.',
+            whyItMatters: 'Percentage is balanced, showing no signs of active acute bacterial infection.',
+            recommendationQuestion: 'Healthy baseline.'
+          },
+          {
+            id: 'lympho',
+            name: 'Lymphocytes',
+            category: 'Immune System',
+            value: 30,
+            unit: '%',
+            referenceRange: '20 - 40',
+            status: 'normal',
+            plainMeaning: 'White blood cells that produce antibodies and remember previous infections (viral defense).',
+            whyItMatters: 'Well within standard parameters.',
+            recommendationQuestion: 'No action needed.'
+          }
+        ],
+        doctorQuestions: [
+          'My hemoglobin is 12.1 g/dL (reference: 13.5 - 17.5). Do you recommend checking serum ferritin or iron stores?',
+          'Are there specific dietary changes (e.g., leafy greens, lentils, citrus for absorption) or supplements you suggest?',
+          'Should we repeat the Complete Blood Count in 2 to 3 months to see if values improve?'
+        ]
+      },
+      {
+        id: 'lipid-02',
+        title: 'Comprehensive Lipid & Cholesterol Profile',
+        labName: 'Metropolis Healthcare Diagnostic Centre',
+        testDate: '08 Nov 2026',
+        patient: { name: 'Priya Patel', age: 46, gender: 'Female', patientId: 'PT-99230' },
+        fileName: 'Priya_Lipid_Panel_Nov2026.pdf',
+        fileSize: '890 KB',
+        summary: {
+          headline: 'Elevated LDL cholesterol with protective HDL levels',
+          plainLanguageOverview: 'A lipid panel measures fats and cholesterol in your circulation to gauge cardiovascular wellness. Your protective HDL ("good") cholesterol is strong and healthy. However, LDL ("bad") cholesterol and total cholesterol are moderately elevated above ideal preventive targets. This is very common and frequently responsive to heart-healthy dietary habits, aerobic movement, and lifestyle tweaks.',
+          overallStatus: 'borderline',
+          flagCount: 2,
+          totalCount: 5,
+        },
+        metrics: [
+          {
+            id: 'tc',
+            name: 'Total Cholesterol',
+            category: 'Lipids',
+            value: 224,
+            unit: 'mg/dL',
+            referenceRange: '< 200',
+            status: 'high',
+            plainMeaning: 'The overall combined amount of all types of cholesterol circulating in your blood.',
+            whyItMatters: 'Levels above 200 mg/dL warrant paying closer attention to dietary saturated fats and routine cardio exercise.',
+            recommendationQuestion: 'How does this number fit into my broader 10-year cardiovascular risk profile?'
+          },
+          {
+            id: 'ldl',
+            name: 'LDL Cholesterol ("Bad")',
+            category: 'Lipids',
+            value: 142,
+            unit: 'mg/dL',
+            referenceRange: '< 100',
+            status: 'high',
+            plainMeaning: 'Low-Density Lipoprotein carries cholesterol to tissues; excess can slowly build up plaque inside blood vessels.',
+            whyItMatters: 'Keeping LDL below 100 mg/dL is ideal for long-term arterial clarity. 142 mg/dL indicates room for lifestyle improvement.',
+            recommendationQuestion: 'Should we attempt a 3-month dietary and exercise trial before considering any medication?'
+          },
+          {
+            id: 'hdl',
+            name: 'HDL Cholesterol ("Good")',
+            category: 'Lipids',
+            value: 58,
+            unit: 'mg/dL',
+            referenceRange: '> 50',
+            status: 'normal',
+            plainMeaning: 'High-Density Lipoprotein scavenges excess cholesterol from arteries and carries it back to the liver for disposal.',
+            whyItMatters: 'Higher HDL (>50 for women) provides a natural cardiovascular buffer.',
+            recommendationQuestion: 'Healthy protective level! What habits will help keep it high?'
+          },
+          {
+            id: 'tg',
+            name: 'Triglycerides',
+            category: 'Lipids',
+            value: 145,
+            unit: 'mg/dL',
+            referenceRange: '< 150',
+            status: 'normal',
+            plainMeaning: 'The main storage form of fat in the body, derived from surplus dietary calories, sugars, and carbohydrates.',
+            whyItMatters: 'At 145 mg/dL, this is within normal limits but close to the 150 mg/dL borderline threshold.',
+            recommendationQuestion: 'Would reducing refined carbohydrates and sugary drinks help maintain this below 120?'
+          },
+          {
+            id: 'vldl',
+            name: 'VLDL Cholesterol',
+            category: 'Lipids',
+            value: 24,
+            unit: 'mg/dL',
+            referenceRange: '5 - 30',
+            status: 'normal',
+            plainMeaning: 'Very Low-Density Lipoprotein carries mostly triglycerides to your tissues.',
+            whyItMatters: 'Well within standard healthy range.',
+            recommendationQuestion: 'Normal finding.'
+          }
+        ],
+        doctorQuestions: [
+          'My LDL is 142 mg/dL while my HDL is 58 mg/dL. What lifestyle modifications do you recommend first?',
+          'Do you advise a coronary calcium scan or other screening based on my family history?',
+          'When should I schedule a follow-up fasting lipid panel to measure progress?'
+        ]
+      },
+      {
+        id: 'tft-03',
+        title: 'Thyroid Function Panel (Ultra-sensitive TSH & Free Hormones)',
+        labName: 'SRL Diagnostics Laboratory',
+        testDate: '03 Nov 2026',
+        patient: { name: 'Ananya Deshmukh', age: 32, gender: 'Female', patientId: 'PT-71043' },
+        fileName: 'Ananya_Thyroid_Panel_Nov2026.png',
+        fileSize: '2.1 MB',
+        summary: {
+          headline: 'Mildly elevated TSH with normal Free T3 and Free T4 (Subclinical pattern)',
+          plainLanguageOverview: 'Your thyroid gland at the base of your neck controls your body\'s metabolism, energy generation, and temperature balance. In this report, your actual active circulating hormones (Free T3 and Free T4) are completely normal. However, TSH (the signal sent from your brain\'s pituitary gland telling your thyroid to produce hormones) is slightly high. Doctors describe this pattern as subclinical hypothyroidism, often monitored over time or correlated with fatigue symptoms.',
+          overallStatus: 'borderline',
+          flagCount: 1,
+          totalCount: 3,
+        },
+        metrics: [
+          {
+            id: 'tsh',
+            name: 'Thyroid Stimulating Hormone (TSH, Ultrasensitive)',
+            category: 'Thyroid',
+            value: 5.82,
+            unit: 'uIU/mL',
+            referenceRange: '0.45 - 4.50',
+            status: 'high',
+            plainMeaning: 'TSH is released by the pituitary gland in the brain like a thermostat signal, stimulating the thyroid.',
+            whyItMatters: 'When the thyroid is working slightly sluggishly, the brain raises TSH to signal harder. At 5.82 uIU/mL, it is slightly above the 4.50 ceiling.',
+            recommendationQuestion: 'Do my current symptoms (energy, sleep, cold sensitivity) warrant treatment or should we re-test in 3 months?'
+          },
+          {
+            id: 'ft4',
+            name: 'Free Thyroxine (FT4)',
+            category: 'Thyroid',
+            value: 1.28,
+            unit: 'ng/dL',
+            referenceRange: '0.82 - 1.77',
+            status: 'normal',
+            plainMeaning: 'The unbound, active main hormone circulating in your blood ready for cell metabolism.',
+            whyItMatters: 'Because FT4 is normal, your tissues are receiving sufficient active thyroid hormone right now.',
+            recommendationQuestion: 'Confirming FT4 is healthy reassures that hormone delivery is currently balanced.'
+          },
+          {
+            id: 'ft3',
+            name: 'Free Triiodothyronine (FT3)',
+            category: 'Thyroid',
+            value: 3.10,
+            unit: 'pg/mL',
+            referenceRange: '2.00 - 4.40',
+            status: 'normal',
+            plainMeaning: 'The most biologically potent thyroid hormone that directly drives cellular metabolic rate.',
+            whyItMatters: 'Solidly in the middle of normal reference range.',
+            recommendationQuestion: 'Shows normal peripheral conversion of thyroid hormone.'
+          }
+        ],
+        doctorQuestions: [
+          'Given normal Free T4/T3 but TSH of 5.82, does this indicate subclinical hypothyroidism?',
+          'Would testing for thyroid antibodies (Anti-TPO) help identify if this is autoimmune related?',
+          'Do you suggest monitoring every 3-6 months or initiating low-dose levothyroxine?'
+        ]
+      }
+    ];
+
+    function App() {
+      const [currentView, setCurrentView] = useState('landing');
+      const [reports, setReports] = useState(SAMPLE_REPORTS);
+      const [activeReport, setActiveReport] = useState(SAMPLE_REPORTS[0]);
+      const [isUploadOpen, setIsUploadOpen] = useState(false);
+      const [isDisclaimerOpen, setIsDisclaimerOpen] = useState(false);
+      const [isAuthOpen, setIsAuthOpen] = useState(false);
+      const [authTheme, setAuthTheme] = useState('glass'); // 'glass' | 'pastel'
+      const [currentUser, setCurrentUser] = useState(null);
+      const [uploadingMeta, setUploadingMeta] = useState(null);
+      const [activeFilter, setActiveFilter] = useState('all');
+      const [checkedQuestions, setCheckedQuestions] = useState({});
+      const [showRawText, setShowRawText] = useState(false);
+      const [expandedMetricId, setExpandedMetricId] = useState(null);
+      const [loadingStep, setLoadingStep] = useState(0);
+
+      const [authMode, setAuthMode] = useState('login');
+      const [authForm, setAuthForm] = useState({ username: '', password: '' });
+
+      const handleGetStarted = () => {
+        setCurrentView('dashboard');
+        setIsUploadOpen(true);
+      };
+
+      const handleSelectSample = (sampleId) => {
+        const found = reports.find(r => r.id === sampleId) || reports[0];
+        setActiveReport(found);
+        setCurrentView('results');
+      };
+
+      const handleStartUpload = (file) => {
+        setUploadingMeta({
+          name: file.name,
+          size: (file.size / 1024 / 1024).toFixed(2) + ' MB'
+        });
+        setIsUploadOpen(false);
+        setCurrentView('loading');
+        setLoadingStep(0);
+
+        setTimeout(() => setLoadingStep(1), 900);
+        setTimeout(() => setLoadingStep(2), 2000);
+        setTimeout(() => setLoadingStep(3), 3200);
+        setTimeout(() => {
+          const newReport = {
+            ...SAMPLE_REPORTS[0],
+            id: 'upload-' + Date.now(),
+            title: 'Custom Upload Analysis (' + file.name + ')',
+            fileName: file.name,
+            fileSize: (file.size / 1024 / 1024).toFixed(2) + ' MB',
+            testDate: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+          };
+          setReports([newReport, ...reports]);
+          setActiveReport(newReport);
+          setCurrentView('results');
+        }, 4400);
+      };
+
+      const handleLoginSubmit = (e) => {
+        if (e) e.preventDefault();
+        setCurrentUser({
+          name: authForm.username || 'Rohan Sharma',
+          email: 'rohan.sharma@example.com'
+        });
+        setIsAuthOpen(false);
+      };
+
+      return (
+        <div className="min-h-screen flex flex-col bg-slate-50 text-slate-800">
+          
+          {/* Header */}
+          <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-2xs">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+              <div 
+                onClick={() => setCurrentView('landing')}
+                className="flex items-center gap-3 cursor-pointer group"
+              >
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-600 to-sky-500 flex items-center justify-center text-white shadow-md shadow-sky-500/20 font-bold text-xl">
+                  RS
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl font-extrabold tracking-tight text-slate-900 group-hover:text-sky-600 transition-colors">
+                      ReportSaathi
+                    </span>
+                    <span className="text-[10px] font-semibold bg-sky-100 text-sky-800 px-2 py-0.5 rounded-full border border-sky-200">
+                      Live
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 hidden sm:block">Plain-language medical report explainer</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setCurrentView('landing')}
+                  className={`px-3 py-1.5 text-sm font-semibold rounded-lg transition-colors ${
+                    currentView === 'landing' ? 'text-sky-700 bg-sky-50' : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  About
+                </button>
+                <button
+                  onClick={() => setCurrentView('dashboard')}
+                  className={`px-3 py-1.5 text-sm font-semibold rounded-lg transition-colors ${
+                    currentView === 'dashboard' || currentView === 'results' ? 'text-sky-700 bg-sky-50' : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  Dashboard
+                </button>
+                <button
+                  onClick={() => setIsDisclaimerOpen(true)}
+                  className="px-3 py-1.5 text-xs font-semibold text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg transition-colors hidden sm:block"
+                >
+                  Educational Notice
+                </button>
+
+                {currentUser ? (
+                  <div className="flex items-center gap-2 pl-2 border-l border-slate-200">
+                    <div className="flex items-center gap-2 px-2.5 py-1 bg-emerald-50 border border-emerald-200 rounded-xl text-xs font-semibold text-emerald-900">
+                      <span className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px]">
+                        {currentUser.name[0]}
+                      </span>
+                      <span>{currentUser.name}</span>
+                    </div>
+                    <button 
+                      onClick={() => setCurrentUser(null)} 
+                      className="text-xs text-slate-400 hover:text-slate-700"
+                    >
+                      Logout
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setIsAuthOpen(true)}
+                    className="px-4 py-1.5 text-xs font-bold rounded-xl bg-slate-900 hover:bg-slate-800 text-white shadow-sm transition-all"
+                  >
+                    LOGIN
+                  </button>
+                )}
+              </div>
+            </div>
+          </header>
+
+          {/* Main Views */}
+          <main className="flex-1">
+            {currentView === 'landing' && (
+              <div className="space-y-16 pb-16">
+                <section className="relative pt-12 pb-8 sm:pt-20 sm:pb-16 text-center max-w-4xl mx-auto px-4">
+                  <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sky-100/90 border border-sky-200 text-sky-800 text-xs sm:text-sm font-semibold mb-6">
+                    Patient Education & Health Literacy Assistant
+                  </div>
+
+                  <h1 className="text-4xl sm:text-6xl font-extrabold text-slate-900 tracking-tight leading-[1.15]">
+                    Understand your lab reports in <span className="bg-gradient-to-r from-sky-600 to-teal-600 bg-clip-text text-transparent">plain, friendly language</span>.
+                  </h1>
+
+                  <p className="mt-6 text-lg sm:text-xl text-slate-600 leading-relaxed max-w-2xl mx-auto">
+                    Pathology lab reports are filled with complex ranges and confusing terms. <strong>ReportSaathi</strong> decodes your biomarkers into plain English so you can walk into your next doctor consultation prepared and empowered.
+                  </p>
+
+                  <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
+                    <button
+                      onClick={handleGetStarted}
+                      className="w-full sm:w-auto px-7 py-3.5 bg-sky-600 hover:bg-sky-700 text-white font-semibold text-base rounded-xl shadow-lg shadow-sky-600/25 transition-all hover:-translate-y-0.5"
+                    >
+                      Upload Your Lab Report
+                    </button>
+                    <button
+                      onClick={() => handleSelectSample('cbc-01')}
+                      className="w-full sm:w-auto px-7 py-3.5 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-base rounded-xl border border-slate-200 shadow-sm transition-all"
+                    >
+                      Explore Demo CBC Report
+                    </button>
+                  </div>
+                </section>
+              </div>
+            )}
+
+            {currentView === 'dashboard' && (
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+                {currentUser && (
+                  <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex items-center justify-between">
+                    <div>
+                      <h3 className="text-sm font-bold text-slate-900">Welcome, {currentUser.name}!</h3>
+                      <p className="text-xs text-slate-500">Your lab reports are saved to your account.</p>
+                    </div>
+                    <span className="text-xs font-semibold text-emerald-800 bg-white px-3 py-1 rounded-full border border-emerald-200">Account Active</span>
+                  </div>
+                )}
+
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Your Medical Reports</h1>
+                    <p className="text-xs sm:text-sm text-slate-500 mt-1">Review lab findings and questions for your doctor.</p>
+                  </div>
+                  <button
+                    onClick={() => setIsUploadOpen(true)}
+                    className="px-5 py-2.5 bg-sky-600 hover:bg-sky-700 text-white font-semibold text-sm rounded-xl shadow-md transition-all"
+                  >
+                    + Upload New Report
+                  </button>
+                </div>
+
+                <div className="space-y-3">
+                  <h2 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Available Demo Reports</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {reports.map((report) => (
+                      <div
+                        key={report.id}
+                        onClick={() => { setActiveReport(report); setCurrentView('results'); }}
+                        className="bg-white rounded-2xl p-5 border border-slate-200 hover:border-sky-400 shadow-sm hover:shadow-md transition-all cursor-pointer flex flex-col justify-between group"
+                      >
+                        <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-[11px] font-semibold text-sky-800 bg-sky-50 px-2 py-0.5 rounded-full border border-sky-200">
+                              {report.patient.name}
+                            </span>
+                            <span className="text-xs text-slate-400">{report.testDate}</span>
+                          </div>
+                          <h3 className="font-bold text-slate-900 text-base group-hover:text-sky-600 transition-colors">{report.title}</h3>
+                          <p className="text-xs text-slate-500 mt-1">{report.labName}</p>
+                          <p className="text-xs text-slate-600 mt-3 line-clamp-2">{report.summary.headline}</p>
+                        </div>
+                        <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-sky-600">
+                          <span>{report.metrics.length} Biomarkers</span>
+                          <span>View Explanation →</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {currentView === 'results' && activeReport && (
+              <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+                <button
+                  onClick={() => setCurrentView('dashboard')}
+                  className="text-xs sm:text-sm font-semibold text-slate-600 hover:text-slate-900"
+                >
+                  ← Back to Dashboard
+                </button>
+
+                <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-4">
+                  <h1 className="text-2xl font-extrabold text-slate-900">{activeReport.title}</h1>
+                  <p className="text-sm text-slate-600">{activeReport.summary.plainLanguageOverview}</p>
+                </div>
+              </div>
+            )}
+          </main>
+
+          {/* Frosted Glassmorphism Login Modal (Matching Pinterest Reference) */}
+          {isAuthOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-md">
+              <div 
+                className="absolute inset-0 bg-cover bg-center pointer-events-none opacity-40 mix-blend-overlay filter blur-xs"
+                style={{ backgroundImage: `url('public/forest-bg.jpg')` }}
+              />
+
+              <div className="relative w-full max-w-[400px] bg-gradient-to-b from-white/25 via-white/15 to-white/10 backdrop-blur-2xl rounded-[2.5rem] border border-white/30 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.5)] p-8 sm:p-10 space-y-6 text-slate-900">
+                <button 
+                  onClick={() => setIsAuthOpen(false)}
+                  className="absolute top-6 right-6 w-8 h-8 rounded-full bg-white/20 hover:bg-white/40 text-slate-800 flex items-center justify-center transition-all border border-white/20"
+                >
+                  ✕
+                </button>
+
+                <div className="pt-2">
+                  <h2 className="text-2xl font-black tracking-wider text-slate-900 uppercase">LOGIN</h2>
+                </div>
+
+                <form onSubmit={handleLoginSubmit} className="space-y-4">
+                  <input
+                    type="text"
+                    value={authForm.username}
+                    onChange={(e) => setAuthForm({ ...authForm, username: e.target.value })}
+                    placeholder="Email or username"
+                    className="w-full px-5 py-4 bg-white/20 hover:bg-white/25 focus:bg-white/30 border border-white/30 rounded-2xl text-sm font-medium text-slate-900 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-emerald-400/50 shadow-inner"
+                  />
+                  <input
+                    type="password"
+                    value={authForm.password}
+                    onChange={(e) => setAuthForm({ ...authForm, password: e.target.value })}
+                    placeholder="Password"
+                    className="w-full px-5 py-4 bg-white/20 hover:bg-white/25 focus:bg-white/30 border border-white/30 rounded-2xl text-sm font-medium text-slate-900 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-emerald-400/50 shadow-inner"
+                  />
+
+                  <div className="flex justify-end">
+                    <span className="text-xs text-slate-700 hover:text-slate-950 cursor-pointer">Forgot password?</span>
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="w-full py-3.5 rounded-2xl bg-slate-900/80 hover:bg-slate-900 text-white font-bold text-sm shadow-md border border-white/20 transition-all"
+                  >
+                    Continue
+                  </button>
+                </form>
+
+                <div className="space-y-4 pt-1 text-center">
+                  <div className="text-xs font-bold text-slate-600 tracking-wider">OR</div>
+                  <div className="flex items-center justify-center gap-4">
+                    <button onClick={() => handleLoginSubmit()} className="w-11 h-11 rounded-full bg-white/80 hover:bg-white border border-white/40 flex items-center justify-center shadow-md font-bold text-sm">G</button>
+                    <button onClick={() => handleLoginSubmit()} className="w-11 h-11 rounded-full bg-[#1877F2] text-white flex items-center justify-center shadow-md font-bold text-sm">f</button>
+                    <button onClick={() => handleLoginSubmit()} className="w-11 h-11 rounded-full bg-[#1DA1F2] text-white flex items-center justify-center shadow-md font-bold text-sm">𝕏</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Upload Modal */}
+          {isUploadOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+              <div className="w-full max-w-lg bg-white rounded-2xl p-6 shadow-2xl border border-slate-200 space-y-4">
+                <div className="flex items-center justify-between border-b pb-3">
+                  <h3 className="font-bold text-slate-900 text-base">Upload Report</h3>
+                  <button onClick={() => setIsUploadOpen(false)} className="text-slate-400 hover:text-slate-600 text-lg">✕</button>
+                </div>
+                <div 
+                  onClick={() => handleSelectSample('cbc-01')}
+                  className="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center cursor-pointer hover:bg-slate-50 transition-colors"
+                >
+                  <p className="text-sm font-semibold text-slate-800">Select PDF, JPG or PNG (Up to 10MB)</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
